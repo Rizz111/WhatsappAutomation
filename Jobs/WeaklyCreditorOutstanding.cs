@@ -50,16 +50,23 @@ public class WeaklyCreditorOutstanding : IJob
             string OwnerEmailAddress = CommonClass.ReadSetting("QuartzJobs:WeeklyCredOutstanding:Email");
             var mobileNumbers = OwnerMobileNumber.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).Distinct().ToList();
             var EmailAddress = OwnerEmailAddress.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).Distinct().ToList();
-
-            foreach (var mobile in mobileNumbers)//for send file same file to multiple mobile numbers
+            bool useEmail = CommonClass.ReadSetting1<bool>("NotificationSettings:UseEmail");
+            bool useWhatsApp = CommonClass.ReadSetting1<bool>("NotificationSettings:UseWhatsApp");
+            if (useWhatsApp)
             {
-                await _service.SendDocument(company.PhoneNoId, company.WABAToken, "7023160286",fileResponse.id, FileName, "document", company.Comp_Name);
-                
+                foreach (var mobile in mobileNumbers)//for send file same file to multiple mobile numbers
+                {
+                    await _service.SendDocument(company.PhoneNoId, company.WABAToken, mobile, fileResponse.id, FileName, "document", company.Comp_Name);
+
+                }
             }
 
-            foreach (var email in EmailAddress)//for send file same file to multiple email address
+            if (useEmail)
             {
-              await _emailService.SendEmail("Weekly Creditor Outstanding Report", "Please find the attached report.", pdfBytes, FileName, DateTime.Now,email,company.Comp_Name,OwnerEmailAddress);
+                foreach (var email in EmailAddress)//for send file same file to multiple email address
+                {
+                    await _emailService.SendEmail("Weekly Creditor Outstanding Report", "Please find the attached report.", pdfBytes, FileName, DateTime.Now, email, company.Comp_Name, OwnerEmailAddress, company.SMTPSSL);
+                }
             }
 
 

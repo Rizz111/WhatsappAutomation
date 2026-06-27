@@ -23,4 +23,21 @@ public static class CommonClass
         }
     }
 
+    public static T ReadSetting1<T>(string key)
+    {
+        try
+        {
+            var config = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json")
+                .Build();
+
+            return config.GetValue<T>(key);
+        }
+        catch
+        {
+            Console.WriteLine($"Error reading app setting: {key}");
+            return default!;
+        }
+    }
+
 }

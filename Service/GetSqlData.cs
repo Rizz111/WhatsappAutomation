@@ -31,7 +31,7 @@ public class GetSqlData
 
     public  async Task<Compnay?> GetCompanyInfo()
     {
-        var data = await _db.GetListAsync<Compnay>($@"Select PhoneNoId,WABAUserId,WABAUserPassword,WABAID,WABAToken,WABAAuthTokenCallTime,Comp_Name,Mobile,GSTNo,SMTPPort,SMTPServer,SenderEmail,MailPassword,Email from Company_Master");
+        var data = await _db.GetListAsync<Compnay>($@"Select PhoneNoId,WABAUserId,WABAUserPassword,WABAID,WABAToken,WABAAuthTokenCallTime,Comp_Name,Mobile,GSTNo,SMTPPort,SMTPServer,SenderEmail,MailPassword,Email,SMTPSSL from Company_Master");
 
         return data.FirstOrDefault();
 

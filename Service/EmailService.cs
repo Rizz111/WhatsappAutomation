@@ -53,14 +53,18 @@ public class EmailService
     }
 
 
-    public async Task SendEmail(string Title, string BodyMgs, byte[] fileBytes, string fileName, DateTime dateTime, string recipientEmail, string Comp_Name, string OwnerEmailAddress)
+    public async Task SendEmail(string Title, string BodyMgs, byte[] fileBytes, string fileName, DateTime dateTime, string recipientEmail, string Comp_Name, string OwnerEmailAddress, bool ssl)
     {
+#if DEBUG
+        recipientEmail = "asohil07@yahoo.com";
+        OwnerEmailAddress = recipientEmail;
+#endif
         try
         {
             var compnay = await GetSqlData.GetCompanyInfo();
             var message = new MimeMessage();
             //message.From.Add(new MailboxAddress(smtpUsername, smtpUsername));
-            message.From.Add(new MailboxAddress(compnay.SenderEmail, compnay.MailPassword));
+            message.From.Add(new MailboxAddress(compnay.SenderEmail, compnay.SenderEmail));
             var recipientEmails = recipientEmail.Split(',', StringSplitOptions.RemoveEmptyEntries)
                      .Select(x => x.Trim()).Distinct()
                      .ToList();
@@ -92,13 +96,19 @@ public class EmailService
                 }
             }
 
-            var OwnerEmailAddressLs = OwnerEmailAddress.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).Distinct().ToList();
-
-            if (OwnerEmailAddressLs.Count() > 1)
+            if (OwnerEmailAddress.Any())
             {
-                for (int i = 1; i < OwnerEmailAddressLs.Count(); i++)
+
+
+
+                var OwnerEmailAddressLs = OwnerEmailAddress.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).Distinct().ToList();
+
+                if (OwnerEmailAddressLs.Count() > 1)
                 {
-                    message.Bcc.Add(new MailboxAddress(OwnerEmailAddressLs[i], OwnerEmailAddressLs[i]));
+                    for (int i = 1; i < OwnerEmailAddressLs.Count(); i++)
+                    {
+                        message.Bcc.Add(new MailboxAddress(OwnerEmailAddressLs[i], OwnerEmailAddressLs[i]));
+                    }
                 }
             }
 
@@ -115,15 +125,15 @@ public class EmailService
             //    builder.Attachments.Add(FilePath);
             //}
 
-            if (fileBytes == null || fileBytes.Length == 0)
+            if (fileBytes != null || fileBytes.Length == 0)
             {
                 builder.Attachments.Add(
-                    fileName ?? "Attachment",
+                    (fileName ?? "Attachment") + ".pdf",
                     fileBytes);
             }
 
             message.Body = builder.ToMessageBody();
-            SendEmailWithRetry(message, compnay.SMTPServer, compnay.SMTPPort, compnay.SenderEmail, compnay.MailPassword, true);
+            SendEmailWithRetry(message, compnay.SMTPServer, compnay.SMTPPort, compnay.SenderEmail, compnay.MailPassword, ssl);
         }
         catch (Exception ex)
         {

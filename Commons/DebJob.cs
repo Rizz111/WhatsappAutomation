@@ -30,7 +30,7 @@ internal class DebJob
         if (runType == RunTpye.Daily)
         {
             cond = $@" where lateDays > 120";
-             BccEmail = CommonClass.ReadSetting("QuartzJobs:DailyDebOutstanding:Email");
+            BccEmail = CommonClass.ReadSetting("QuartzJobs:DailyDebOutstanding:Email");
 
         }
         else if (runType == RunTpye.Weakly)
@@ -68,7 +68,11 @@ ORDER BY MAX(LateDays) DESC, PartyName";
             var DebOutsLs = await sqldata.GetListAsync<DailyDebOutsClass>(query);
 
             var company = compnayinfo.FirstOrDefault();
-            List<Task<string>> _Tasks = new();
+            List<Task<string>> whatsappTasks = new();
+            List<Task> emailTasks = new();
+
+
+
             foreach (var item in DebOutsLs)
             {
                 var mobileNumbers = item.MobileNo
@@ -80,30 +84,38 @@ ORDER BY MAX(LateDays) DESC, PartyName";
                      .Select(x => x.Trim()).Distinct()
                      .ToList();
 
-                mobileNumbers.ForEach(mobile =>
+                bool useEmail = CommonClass.ReadSetting1<bool>("NotificationSettings:UseEmail");
+                bool useWhatsApp = CommonClass.ReadSetting1<bool>("NotificationSettings:UseWhatsApp");
+                if (useWhatsApp)
                 {
-                    if (mobile.Length > 10)
-                    {
-                        mobile = mobile;
-                    }
-                    else
-                    {
-                        mobile = $@"91{mobile}";
-                    }
-                    _Tasks.Add(_service.SendTextWithTemplateMessage(company.PhoneNoId, company.WABAToken, mobile, "tempoutstanding", item.PartyName, item.BillNos, item.OutStanding.ToString("0.00"), company.Comp_Name));
-                });
 
-             
-                foreach (var item1 in emails)
-                {
-                    _Tasks.Add(email.SendEmail("Outstanding Alert", $@"Dear {item.PartyName},<br/><br/>Your Outstanding Balance is Rs. {item.OutStanding:0.00}.<br/>Please find the details of your outstanding bills below:<br/><br/>Bill Nos: {item.BillNos}<br/><br/>Kindly make the payment at the earliest to avoid any inconvenience.<br/><br/>Thank you,<br/>{company.Comp_Name}", null, null, DateTime.Now, item1, company.Comp_Name, BccEmail));
+                    mobileNumbers.ForEach(mobile =>
+                    {
+                        if (mobile.Length > 10)
+                        {
+                            mobile = mobile;
+                        }
+                        else
+                        {
+                            mobile = $@"91{mobile}";
+                        }
+                        whatsappTasks.Add(_service.SendTextWithTemplateMessage(company.PhoneNoId, company.WABAToken, mobile, "tempoutstanding", item.PartyName, item.BillNos, item.OutStanding.ToString("0.00"), company.Comp_Name));
+                    });
+
+
                 }
 
+                if (useEmail)
+                {
 
+                    foreach (var item1 in emails)
+                    {
+                        emailTasks.Add(email.SendEmail("Outstanding Alert", $@"Dear {item.PartyName},<br/><br/>Your Outstanding Balance is Rs. {item.OutStanding:0.00}.<br/>Please find the details of your outstanding bills below:<br/><br/>Bill Nos: {item.BillNos}<br/><br/>Kindly make the payment at the earliest to avoid any inconvenience.<br/><br/>Thank you,<br/>{company.Comp_Name}", null, null, DateTime.Now, item1, company.Comp_Name, BccEmail, company.SMTPSSL));
+                    }
+                }
             }
 
-            await Task.WhenAll(_Tasks);
-
+            await Task.WhenAll(whatsappTasks.Concat(emailTasks));
 
             Console.WriteLine($"Total Daily Invoice Class: {DebOutsLs.Count}");
         }
@@ -147,6 +159,7 @@ public class Compnay
     public string SenderEmail { get; set; }
     public string MailPassword { get; set; }
     public string Email { get; set; }
+    public bool SMTPSSL { get; set; }
 
 }
 

@@ -48,7 +48,19 @@ public class SendMediaPayLoad
         public string text { get; set; }
     }
 
+    public class AuthTokenResponce
+    {
+        public bool IsSuccess { get; set; }
+        public object ErrorCode { get; set; }
+        public string TxnOutcome { get; set; }
+    }
 
 
+   public class AuthTokenPayLoad
+    {
+        public string UserId { get; set; }
+        public string Password { get; set; }
+        public int authTokenValidityMins { get; set; } = (60 * 24);
+    }
 
 }

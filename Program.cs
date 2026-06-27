@@ -79,6 +79,20 @@ builder.Services.AddScoped<EmailService>();
 
 builder.Services.AddQuartz(q =>
 {
+
+
+    var GenrateTokenJobKey = new JobKey("GenrateToken");
+
+    q.AddJob<GenrateToken>(opts =>
+        opts.WithIdentity(GenrateTokenJobKey));
+
+    q.AddTrigger(opts =>
+        opts.ForJob(GenrateTokenJobKey)
+        .WithIdentity("GenrateToken-trigger")
+        .WithCronSchedule(CommonClass.ReadSetting("QuartzJobs:GenrateToken:Cron")));
+
+    //---------------------------------------------Genrate Token  end---------------------------------------------
+
     var DailyInvoicejobKey = new JobKey("DailyInvoice");
 
     q.AddJob <DailyInvoice>(opts =>

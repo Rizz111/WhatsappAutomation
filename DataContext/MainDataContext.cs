@@ -42,13 +42,13 @@ public class MainDataContext : DbContext
 
     public static string MainConnectionString()
     {
-        //string ServerName = ReadSetting("ServerName");
-        string ServerName ="Texserver";
-        
-        //string DbName = ReadSetting("DbName");
-        string DbName ="TechRanjan2401";
+        string ServerName = ReadSetting("ServerName");
 
-        
+
+        string DbName = ReadSetting("DbName");
+
+
+
         var SQLConn = new SqlConnectionStringBuilder()
         {
             UserID = "sa",

@@ -81,28 +81,32 @@ Group by Party_Code, ac.ac_Name, agent.Ac_Name, bb.Book_Code");
             string Filterstring = $@"[Fvno]={invoice.Fvno}";
            var Pdfbyte= await _report.GenerateReportAsync(ReportName,"Invoice", Filterstring,"Title","Range");//upload document to whatsapp single time or genreate there id 
            var Company = await sqldata.GetCompanyInfo();
-           var fileresponse=await _service.UploadFile(Pdfbyte,$@"Invoice{invoice.PartyName}_{DateTime.Now:yyyyMMdd}",Company.PhoneNoId,Company.WABAToken);
-            var mobileNumbers = invoice.Mobile
-                     .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                     .Select(x => x.Trim()).Distinct()
-                     .ToList();
-            var emails = invoice.Email
-                     .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                     .Select(x => x.Trim()).Distinct()
-                     .ToList();
 
-           
 
-            foreach (var mobile in mobileNumbers)//send same file to multiple mobile numbers after this loop id genrate for new document
+            bool useEmail = CommonClass.ReadSetting1<bool>("NotificationSettings:UseEmail");
+            bool useWhatsApp = CommonClass.ReadSetting1<bool>("NotificationSettings:UseWhatsApp");
+            if (useWhatsApp)
             {
+                var fileresponse = await _service.UploadFile(Pdfbyte, $@"Invoice{invoice.PartyName}_{DateTime.Now:yyyyMMdd}", Company.PhoneNoId, Company.WABAToken);
+                var mobileNumbers = invoice.Mobile
+                         .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                         .Select(x => x.Trim()).Distinct()
+                         .ToList();
 
-              await _service.SendDocument(Company.PhoneNoId,Company.WABAToken,"7023160286",fileresponse.id, $@"Invoice{invoice.PartyName}_{DateTime.Now:yyyyMMdd}", "document",Company.Comp_Name);
 
+
+
+                foreach (var mobile in mobileNumbers)//send same file to multiple mobile numbers after this loop id genrate for new document
+                {
+
+                    await _service.SendDocument(Company.PhoneNoId, Company.WABAToken, mobile, fileresponse.id, $@"Invoice{invoice.PartyName}_{DateTime.Now:yyyyMMdd}", "document", Company.Comp_Name);
+
+                }
             }
-            
-            foreach(var email in emails)
+
+            if (useEmail)
             {
-                await _emailService.SendEmail("Invoice", $"Dear {invoice.PartyName}, Please find attached invoice for your reference.", Pdfbyte, $@"Invoice{invoice.PartyName}_{DateTime.Now:yyyyMMdd}", DateTime.Now, email, Company.Comp_Name,BccEmail);
+                await _emailService.SendEmail("Invoice", $"Dear {invoice.PartyName}, Please find attached invoice for your reference.", Pdfbyte, $@"Invoice{invoice.PartyName}_{DateTime.Now:yyyyMMdd}", DateTime.Now, Company.Comp_Name, invoice.Email, BccEmail, Company.SMTPSSL);
             }
 
 
