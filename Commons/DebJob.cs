@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using TexERP.Commons;
 using WhatsappAutomation.DataContext;
 using WhatsappAutomation.Service;
+using WhatsappAutomation.Services;
 using static WhatsappAutomation.Jobs.WeaklyDebitorOutsanding;
 
 namespace WhatsappAutomation.Commons;
@@ -22,7 +23,7 @@ internal class DebJob
 
 
 
-    public static async Task RunWeeklyDebOutsob(GetSqlData sqldata, WhatsappService _service, EmailService email, RunTpye runType)
+    public static async Task RunWeeklyDebOutsob(GetSqlData sqldata, WhatsappService _service, EmailService email, ReportServiceDeskTop _reportservice, RunTpye runType)
     {
 
         string cond = @$"";
@@ -49,7 +50,7 @@ internal class DebJob
     FROM vDebtorsOutstanding o
     INNER JOIN Account_Master ac ON ac.Ac_Code = o.Ac_Code
     LEFT JOIN Account_Master agent ON ac.Agent_Code = agent.Ac_Code
-{cond}
+{cond} and (Case when IsNull(agent.CreditDays, 0) > 0 then agent.CreditDays else IsNull(ac.CreditDays, 0) end) > 0
 )
 SELECT
     PartyName,
@@ -64,7 +65,7 @@ FROM Bills
 WHERE RN <= 5 
 GROUP BY PartyName,PartyCode,AgentCode having SUM(Balance)>0
 ORDER BY MAX(LateDays) DESC, PartyName";
-            var compnayinfo = await sqldata.GetListAsync<Compnay>($@"Select PhoneNoId,WABAUserId,WABAUserPassword,WABAID,WABAToken,WABAAuthTokenCallTime,Comp_Name,Mobile,GSTNo from Company_Master");
+            var compnayinfo = await sqldata.GetListAsync<Compnay>($@"Select PhoneNoId, WABAUserId, WABAUserPassword, WABAID, WABAToken, WABAAuthTokenCallTime, Comp_Name, Mobile, GSTNo from Company_Master");
             var DebOutsLs = await sqldata.GetListAsync<DailyDebOutsClass>(query);
 
             var company = compnayinfo.FirstOrDefault();
@@ -86,21 +87,72 @@ ORDER BY MAX(LateDays) DESC, PartyName";
 
                 bool useEmail = CommonClass.ReadSetting1<bool>("NotificationSettings:UseEmail");
                 bool useWhatsApp = CommonClass.ReadSetting1<bool>("NotificationSettings:UseWhatsApp");
+
                 if (useWhatsApp)
                 {
-
-                    mobileNumbers.ForEach(mobile =>
+                    if (runType == RunTpye.Weakly)// if weekly then send party + owner only text template message
                     {
-                        if (mobile.Length > 10)
+
+
+
+
+                        mobileNumbers.ForEach(mobile =>
                         {
-                            mobile = mobile;
-                        }
-                        else
+                            if (mobile.Length > 10)//send to party according to loop
+                            {
+                                mobile = mobile;
+                            }
+                            else
+                            {
+                                mobile = $@"91{mobile}";
+                            }
+                            whatsappTasks.Add(_service.SendTextWithTemplateMessage(company.PhoneNoId, company.WABAToken, mobile, "tempoutstanding", item.PartyName, item.BillNos, item.OutStanding.ToString("0.00"), company.Comp_Name));
+                        });
+
+
+                        //----------------------------------------------------------------------------------------------------------------send to party according to loop number
+                        string OwnerNumber = CommonClass.ReadSetting1<string>("QuartzJobs:WeeklyDebOutstanding:MobileNo");
+                        var OwnerNumbers = OwnerNumber.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).Distinct().ToList();
+                        OwnerNumbers.ForEach(Omobile =>
                         {
-                            mobile = $@"91{mobile}";
-                        }
-                        whatsappTasks.Add(_service.SendTextWithTemplateMessage(company.PhoneNoId, company.WABAToken, mobile, "tempoutstanding", item.PartyName, item.BillNos, item.OutStanding.ToString("0.00"), company.Comp_Name));
-                    });
+                            if (Omobile.Length > 10)//send to owner according to appsetting
+                            {
+                                Omobile = Omobile;
+                            }
+                            else
+                            {
+                                Omobile = $@"91{Omobile}";
+                            }
+                            whatsappTasks.Add(_service.SendTextWithTemplateMessage(company.PhoneNoId, company.WABAToken, Omobile, "tempoutstanding", item.PartyName, item.BillNos, item.OutStanding.ToString("0.00"), company.Comp_Name));
+                        });
+
+                        //----------------------------------------------------------------------------------------------------------------send to owner according to loop number
+                    }
+
+                    if (runType == RunTpye.Daily) ///if daily then send only to custmore with there document
+                    {
+                        var Filterstring = @$"[LateDays] > 120";
+
+                        var pdfBytes = await _reportservice.GenerateReportAsync("OutsDebBill", "OutStanding", Filterstring);
+
+                        string FileName = $@"DailyDebOuts{DateTime.Today:ddMMMyyyy}.pdf";
+                        var fileResponse = await _service.UploadFile(pdfBytes, FileName, company.PhoneNoId, company.WABAToken);//for upload file single time
+
+                        mobileNumbers.ForEach(mobile =>
+                        {
+                            if (mobile.Length > 10)
+                            {
+                                mobile = mobile;
+                            }
+                            else
+                            {
+                                mobile = $@"91{mobile}";
+                            }
+                            whatsappTasks.Add(_service.SendDocument(company.PhoneNoId, company.WABAToken, mobile, fileResponse.id, FileName, "tempoutstandingdoc", company.Comp_Name));
+                        });
+
+
+                    }
 
 
                 }

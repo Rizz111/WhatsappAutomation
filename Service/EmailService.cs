@@ -30,11 +30,11 @@ public class EmailService
         GetSqlData = getSql;
     }
 
-    private static void WriteLog(string message)
+    private static void WriteLog(string message,string FolderName)
     {
         try
         {
-            string logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs", "Email");
+            string logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs", FolderName);
             if (!Directory.Exists(logDir))
                 Directory.CreateDirectory(logDir);
 
@@ -175,7 +175,7 @@ public class EmailService
 
                 if (retryCount < MaxRetryAttempts)
                 {
-                    WriteLog($"AUTH005 error - Rate limited. Retry {retryCount}/{MaxRetryAttempts} in {delayMs}ms");
+                    WriteLog($"AUTH005 error - Rate limited. Retry {retryCount}/{MaxRetryAttempts} in {delayMs}ms", "Email");
                     Thread.Sleep(delayMs);
                     delayMs *= 2; // Exponential backoff
                 }
@@ -183,25 +183,25 @@ public class EmailService
             catch (MailKit.Net.Smtp.SmtpProtocolException ex)
             {
                 // Other SMTP protocol errors - don't retry
-                WriteLog($"SMTP protocol error: {ex.Message}");
+                WriteLog($"SMTP protocol error: {ex.Message}", "Email");
                 throw;
             }
             catch (MailKit.Security.AuthenticationException ex)
             {
                 // Authentication failed - credentials are invalid, don't retry
-                WriteLog($"Authentication failed: {ex.Message}");
+                WriteLog($"Authentication failed: {ex.Message}", "Email");
                 throw;
             }
             catch (Exception ex)
             {
                 // Network or other errors - may be worth retrying
-                WriteLog($"Email send error: {ex.Message}");
+                WriteLog($"Email send error: {ex.Message}", "Email");
                 lastException = ex;
                 retryCount++;
 
                 if (retryCount < MaxRetryAttempts)
                 {
-                    WriteLog($"Retrying in {delayMs}ms");
+                    WriteLog($"Retrying in {delayMs}ms", "Email");
                     Thread.Sleep(delayMs);
                     delayMs *= 2;
                 }
@@ -211,7 +211,7 @@ public class EmailService
         // All retries exhausted
         if (lastException != null)
         {
-            WriteLog($"Email send failed after {MaxRetryAttempts} attempts: {lastException.Message}");
+            WriteLog($"Email send failed after {MaxRetryAttempts} attempts: {lastException.Message}", "Email");
         }
     }
 }

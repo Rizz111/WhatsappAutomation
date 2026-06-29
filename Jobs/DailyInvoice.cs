@@ -37,6 +37,7 @@ public class DailyInvoice : IJob
 
     public async Task GenrateInvoce()
     {
+
         string ReportName = "";
         var invoicedata = await sqldata.GetListAsync<InvoiceClass>($@"SELECT ac.ac_Name as PartyName, bm.Party_Code, agent.Ac_Name AgentName, String_Agg(bm.FVNo, ', ') Fvno,
 Max(ac.Mobile + ', ' + IsNull(agent.Mobile, '') + ', ' + IsNull(bt.BrandMobile, '')) as Mobile,

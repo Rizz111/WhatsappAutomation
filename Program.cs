@@ -79,63 +79,75 @@ builder.Services.AddScoped<EmailService>();
 
 builder.Services.AddQuartz(q =>
 {
+    if (CommonClass.ReadSetting1<bool>("QuartzJobs:GenrateToken:Enable"))
+    {
 
+        var GenrateTokenJobKey = new JobKey("GenrateToken");
 
-    var GenrateTokenJobKey = new JobKey("GenrateToken");
+        q.AddJob<GenrateToken>(opts =>
+            opts.WithIdentity(GenrateTokenJobKey));
 
-    q.AddJob<GenrateToken>(opts =>
-        opts.WithIdentity(GenrateTokenJobKey));
-
-    q.AddTrigger(opts =>
-        opts.ForJob(GenrateTokenJobKey)
-        .WithIdentity("GenrateToken-trigger")
-        .WithCronSchedule(CommonClass.ReadSetting("QuartzJobs:GenrateToken:Cron")));
+        q.AddTrigger(opts =>
+            opts.ForJob(GenrateTokenJobKey)
+            .WithIdentity("GenrateToken-trigger")
+            .WithCronSchedule(CommonClass.ReadSetting("QuartzJobs:GenrateToken:Cron")));
+    }
 
     //---------------------------------------------Genrate Token  end---------------------------------------------
+    if (CommonClass.ReadSetting1<bool>("QuartzJobs:DailyInvoice:Enable"))
+    {
+        var DailyInvoicejobKey = new JobKey("DailyInvoice");
 
-    var DailyInvoicejobKey = new JobKey("DailyInvoice");
+        q.AddJob<DailyInvoice>(opts =>
+            opts.WithIdentity(DailyInvoicejobKey));
 
-    q.AddJob <DailyInvoice>(opts =>
-        opts.WithIdentity(DailyInvoicejobKey));
-
-    q.AddTrigger(opts =>
-        opts.ForJob(DailyInvoicejobKey)
-        .WithIdentity("DailyInvoice-trigger")
-        .WithCronSchedule(CommonClass.ReadSetting("QuartzJobs:DailyInvoice:Cron")));
+        q.AddTrigger(opts =>
+            opts.ForJob(DailyInvoicejobKey)
+            .WithIdentity("DailyInvoice-trigger")
+            .WithCronSchedule(CommonClass.ReadSetting("QuartzJobs:DailyInvoice:Cron")));
+    }
 
     //---------------------------------------------daily inovice job end---------------------------------------------
-    var DailyDebitorOutstanding = new JobKey("DailyDebitorOutstanding");
+    if (CommonClass.ReadSetting1<bool>("QuartzJobs:DailyDebOutstanding:Enable"))
+    {
+        var DailyDebitorOutstanding = new JobKey("DailyDebitorOutstanding");
 
-    q.AddJob<DailyDebitorOutstanding>(opts =>
-       opts.WithIdentity(DailyDebitorOutstanding));
+        q.AddJob<DailyDebitorOutstanding>(opts =>
+           opts.WithIdentity(DailyDebitorOutstanding));
 
-    q.AddTrigger(opts =>
-        opts.ForJob(DailyDebitorOutstanding)
-        .WithIdentity("DailyDebitorOutstanding-trigger")
-        .WithCronSchedule(CommonClass.ReadSetting("QuartzJobs:DailyDebOutstanding:Cron")));
-
+        q.AddTrigger(opts =>
+            opts.ForJob(DailyDebitorOutstanding)
+            .WithIdentity("DailyDebitorOutstanding-trigger")
+            .WithCronSchedule(CommonClass.ReadSetting("QuartzJobs:DailyDebOutstanding:Cron")));
+    }
     //---------------------------------------------Daily Debitor Outstanding job end---------------------------------------------
-    var WeaklyDebitorOutsandingJobKey = new JobKey("WeaklyDebitorOutsanding");
+    if (CommonClass.ReadSetting1<bool>("QuartzJobs:WeeklyDebOutstanding:Enable"))
+    {
+        var WeaklyDebitorOutsandingJobKey = new JobKey("WeaklyDebitorOutsanding");
 
-    q.AddJob<WeaklyDebitorOutsanding>(opts =>
-        opts.WithIdentity(WeaklyDebitorOutsandingJobKey));
+        q.AddJob<WeaklyDebitorOutsanding>(opts =>
+            opts.WithIdentity(WeaklyDebitorOutsandingJobKey));
 
-    q.AddTrigger(opts =>
-        opts.ForJob(WeaklyDebitorOutsandingJobKey)
-        .WithIdentity("WeaklyDebitorOutsanding-trigger")
-        .WithCronSchedule(CommonClass.ReadSetting("QuartzJobs:WeeklyDebOutstanding:Cron")));
+        q.AddTrigger(opts =>
+            opts.ForJob(WeaklyDebitorOutsandingJobKey)
+            .WithIdentity("WeaklyDebitorOutsanding-trigger")
+            .WithCronSchedule(CommonClass.ReadSetting("QuartzJobs:WeeklyDebOutstanding:Cron")));
+    }
 
     //---------------------------------------------Weekly Debitor Outstanding job end---------------------------------------------
 
-    var WeaklyCreditorOutstanding = new JobKey("WeaklyCreditorOutstanding");
+    if (CommonClass.ReadSetting1<bool>("QuartzJobs:WeeklyCredOutstanding:Enable"))
+    {
+        var WeaklyCreditorOutstanding = new JobKey("WeaklyCreditorOutstanding");
 
-    q.AddJob<WeaklyCreditorOutstanding>(opts =>
-        opts.WithIdentity(WeaklyCreditorOutstanding));
+        q.AddJob<WeaklyCreditorOutstanding>(opts =>
+            opts.WithIdentity(WeaklyCreditorOutstanding));
 
-    q.AddTrigger(opts =>
-        opts.ForJob(WeaklyCreditorOutstanding)
-        .WithIdentity("WeaklyCreditorOutstanding-trigger")
-        .WithCronSchedule(CommonClass.ReadSetting("QuartzJobs:WeeklyCredOutstanding:Cron")));
+        q.AddTrigger(opts =>
+            opts.ForJob(WeaklyCreditorOutstanding)
+            .WithIdentity("WeaklyCreditorOutstanding-trigger")
+            .WithCronSchedule(CommonClass.ReadSetting("QuartzJobs:WeeklyCredOutstanding:Cron")));
+    }
 
     //---------------------------------------------Weekly Creditor Outstanding job end---------------------------------------------
 

@@ -8,6 +8,7 @@ namespace WhatsappAutomation.Service;
 
 public class WhatsappService
 {
+    private static readonly object _logLock = new();
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> _phoneLocks =
     new ConcurrentDictionary<string, SemaphoreSlim>();
 
@@ -99,10 +100,19 @@ public class WhatsappService
                             if (resppObj.contacts[0].wa_id == "")
                             {
                                 return "Given Number is not on WhatsApp";
+                                WriteLog($"Given Number is not on WhatsApp: {MobileNo}");
+                                Console.WriteLine($"Given Number is not on WhatsApp: {MobileNo}");
                             }
                             return "OK";
+                            WriteLog($"Message sent successfully to: {MobileNo} with response: {SendTextResp}");
+                            Console.WriteLine($"Message sent successfully to: {MobileNo} with response: {SendTextResp}");   
                         }
                     }
+                }
+                else 
+                {
+                WriteLog($"Failed to send message to: {MobileNo}. Status Code: {response.StatusCode}, Error Message: {response.ErrorMessage}");
+                    Console.WriteLine($"Failed to send message to: {MobileNo}. Status Code: {response.StatusCode}, Error Message: {response.ErrorMessage}");
                 }
         }
         finally
@@ -145,14 +155,15 @@ public class WhatsappService
             "application/pdf");
 
         RestResponse response = await client.ExecuteAsync(request);
-
-        Console.WriteLine(response.Content);
+       
+        WriteLog($"File upload Response for {fileName}: {response.Content}");
+        Console.WriteLine($@"File upload Response for {fileName}: {response.Content}");
 
         if (!response.IsSuccessful)
         {
             Console.WriteLine(
-                $"Error: {response.StatusCode} - {response.ErrorMessage}");
-
+                $"Error for file {fileName}: {response.StatusCode} - {response.ErrorMessage}");
+            WriteLog($"Error for {fileName}: {response.StatusCode} - {response.ErrorMessage}");
             return new UploadMedia();
         }
 
@@ -167,7 +178,7 @@ public class WhatsappService
         catch (Exception ex)
         {
             Console.WriteLine($"Deserialization Error: {ex.Message}");
-
+            WriteLog($"Deserialization Error: {ex.Message}");
             return new UploadMedia();
         }
     }
@@ -259,7 +270,8 @@ public class WhatsappService
         request.AddParameter("application/json", newText, ParameterType.RequestBody);
         //request.AddParameter("text/plain", body, ParameterType.RequestBody);
         RestResponse response = await client.ExecuteAsync(request);
-
+        WriteLog($"Message with {FileName}: {response.Content}");
+        Console.WriteLine($"Response For {FileName}: {response.Content}");
         if (response != null)
             if (response.IsSuccessful && response.Content != null)
             {
@@ -273,15 +285,48 @@ public class WhatsappService
                         if (resppObj.contacts[0].wa_id == "")
                         {
                             return "Given Number is not on WhatsApp";
+                            WriteLog($"Given Number is not on WhatsApp: {MobileNo} with response: {SendTextResp}");
+                            Console.WriteLine($"Given Number is not on WhatsApp: {MobileNo} with response: {SendTextResp}");
                         }
                         return "OK";
+                        WriteLog($"Message sent successfully to: {MobileNo} with response: {SendTextResp} and file: {FileName}");
+                        Console.WriteLine($"Message sent successfully to: {MobileNo} with response: {SendTextResp} and file: {FileName}");
                     }
                 }
+                else
+                {
+                    WriteLog($"Failed to send message to: {MobileNo} with file: {FileName}. Response content is null.");
+                    Console.WriteLine($"Failed to send message to: {MobileNo} with file: {FileName}. Response content is null.");
+                }
             }
-
+            else
+            {
+                WriteLog($"Failed to send message to: {MobileNo} with file: {FileName}. Status Code: {response.StatusCode}, Error Message: {response.ErrorMessage}");
+                Console.WriteLine($"Failed to send message to: {MobileNo} with file: {FileName}. Status Code: {response.StatusCode}, Error Message: {response.ErrorMessage}");
+            }
         return string.Empty;
     }
+    private static void WriteLog(string message)
+    {
+        try
+        {
+            string logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs", "Whatsapp");
+            if (!Directory.Exists(logDir))
+                Directory.CreateDirectory(logDir);
 
+            string logFile = Path.Combine(logDir, $"WhatsappLog_{DateTime.Now:yyyy-MM-dd}.log");
+            string line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}{Environment.NewLine}";
+
+            lock (_logLock)
+            {
+                File.AppendAllText(logFile, line);
+            }
+        }
+        catch
+        {
+            // Swallow logging errors to avoid impacting email flow
+        }
+    }
     public class SendWaRespTex
     {
         public string messaging_product { get; set; }
