@@ -131,9 +131,10 @@ ORDER BY MAX(LateDays) DESC, PartyName";
 
                     if (runType == RunTpye.Daily) ///if daily then send only to custmore with there document
                     {
-                        var Filterstring = @$"[LateDays] > 120";
+                        var Filterstring = @$"[Ac_code] = {item.PartyCode} And [LateDays] > 120
+";
 
-                        var pdfBytes = await _reportservice.GenerateReportAsync("OutsDebBill", "OutStanding", Filterstring);
+                        var pdfBytes = await _reportservice.GenerateReportAsync("OutsDebtors", "OutStanding", Filterstring);
 
                         string FileName = $@"DailyDebOuts{DateTime.Today:ddMMMyyyy}.pdf";
                         var fileResponse = await _service.UploadFile(pdfBytes, FileName, company.PhoneNoId, company.WABAToken);//for upload file single time

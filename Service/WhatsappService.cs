@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using RestSharp;
 using System.Collections.Concurrent;
 using System.IO;
+using WhatsappAutomation.Commons;
 
 namespace WhatsappAutomation.Service;
 
@@ -344,4 +345,85 @@ public class WhatsappService
             public string id { get; set; }
         }
     }
+
+
+
+    //////--------------------------------------------------------------------------------------------------UnOffical Whatsapp Send Document To Multiple Mobile Numbers
+    ///
+
+    public  bool GetDetails()
+    {
+        var serverName = CommonClass.ReadSetting("ServerName");
+        serverName = serverName
+   .Split(',', StringSplitOptions.RemoveEmptyEntries)[0]
+   .Trim();
+        var client = new RestClient(@$"http://{serverName}:3000/me");
+        var request = new RestRequest()
+        {
+            Timeout = new TimeSpan(0, 0, 30),
+            Method = RestSharp.Method.Get,
+        };
+        var response = client.Execute(request);
+        if (response.IsSuccessful == true)
+        {
+            return true;
+
+        }
+        else
+        {
+            return false;
+        }
+
+        Console.WriteLine(response.IsSuccessful);
+
+
+    }
+
+
+    public  string SendReq(string Message, string MobileNo, string PdfPath)
+    {
+
+
+        if (PdfPath != string.Empty)
+            PdfPath = Path.GetFullPath(PdfPath);
+#if DEBUG
+        MobileNo = "7023160286";
+#endif
+
+        var serverName = CommonClass.ReadSetting("ServerName");
+        serverName = serverName
+   .Split(',', StringSplitOptions.RemoveEmptyEntries)[0]
+   .Trim();
+        RestResponse response = new();
+
+        var client = new RestClient(@$"http://{serverName}:3000/send");
+        var request = new RestRequest()
+        {
+            Timeout = new TimeSpan(0, 0, 30),
+            Method = Method.Post,
+        };
+
+        var body = new SendData()
+        {
+            contact = MobileNo,
+            file = PdfPath,
+            message = Message,
+        };
+        request.AddJsonBody(body);
+        //var JSno = (new List<SendData>() { body }).ToList().ConvertToJSON();
+        response = client.Execute(request);
+
+
+        //Console.WriteLine(response.Content);
+        return response.Content;
+    }
+    internal class SendData
+    {
+        public string contact { get; set; }
+        public string message { get; set; }
+        public string file { get; set; }
+    }
+
+
+
 }
