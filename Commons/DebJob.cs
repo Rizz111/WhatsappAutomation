@@ -225,6 +225,7 @@ public class InvoiceClass
     public string Fvno { get; set; }
     public string Mobile { get; set; }
     public string Email { get; set; }
+    public string Bill_Nos { get; set; }
     public string Book_Type { get; set; }
 
 }

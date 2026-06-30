@@ -21,8 +21,6 @@ namespace WhatsappAutomation.Services
 
         public async Task<byte[]> GenerateReportAsync(string reportName, string FolderName, string Filterstring, string Title = "Report Title", string Range = "Report Range")
         {
-
-            
             string reportPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports", FolderName, reportName + ".repx");
 
             if (!File.Exists(reportPath))
