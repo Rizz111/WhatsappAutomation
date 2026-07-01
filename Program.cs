@@ -1,33 +1,3 @@
-//using Quartz;
-//using WhatsappAutomation;
-//using WhatsappAutomation.DataContext;
-//using WhatsappAutomation.Jobs;
-//using WhatsappAutomation.Service;
-
-//var builder = Host.CreateApplicationBuilder(args);
-//builder.Services.AddHostedService<Worker>();
-//builder.Services.AddDbContext<MainDataContext>();
-//builder.Services.AddScoped<GetSqlData>();
-//builder.Services.AddQuartz(q =>
-//{
-//    var jobKey = new JobKey("DailyInvoice");
-
-//    q.AddJob<DailyInovice>(x =>
-//        x.WithIdentity(jobKey));
-
-
-//    q.AddTrigger(x =>
-//        x.ForJob(jobKey)
-//        .WithIdentity("DailyInvoice-trigger")
-//        .WithCronSchedule("0 0 9 ? * *")); // every day 9 AM
-//});
-
-
-//builder.Services.AddQuartzHostedService();
-
-
-//var host = builder.Build();
-//host.Run();
 
 using DevExpress.XtraReports.Services;
 using DevExpress.XtraReports.Summary.Native;
@@ -40,8 +10,16 @@ using WhatsappAutomation.Jobs;
 using WhatsappAutomation.ReportControllers;
 using WhatsappAutomation.Service;
 using WhatsappAutomation.Services;
+using Microsoft.Extensions.Hosting;
+
 
 var builder = Host.CreateApplicationBuilder(args);
+builder.Services.AddWindowsService(options =>
+{
+    options.ServiceName = "WhatsappAutomation";
+});
+
+
 builder.Services.AddScoped<WhatsappService>();
 builder.Services.AddHostedService<Worker>();
 builder.Services.AddScoped<IReportProvider, ReportByNameService>();
@@ -52,33 +30,10 @@ builder.Services.AddScoped<GetSqlData>();
 builder.Services.AddScoped<EmailService>();
 
 
-//builder.Services.AddQuartz(q =>
-//{
-//    var jobKey = new JobKey("WeaklyOutStanding");
-
-//    q.AddJob<WeaklyDebOuts>(x =>
-//        x.WithIdentity(jobKey));
-
-//    q.AddTrigger(x =>
-//        x.ForJob(jobKey)
-//        .WithIdentity("WeaklyOutStanding-trigger")
-//        .WithCronSchedule("0 0/5 * * * ?")); // testing every 10 seconds
-
-
-//    // Monday Job
-//    //var weeklyJob = new JobKey("WeeklyInvoice");
-
-//    //q.AddJob<WeeklyInvoice>(x =>
-//    //    x.WithIdentity(weeklyJob));
-
-//    //q.AddTrigger(x =>
-//    //    x.ForJob(weeklyJob)
-//    //    .WithIdentity("WeeklyReport-trigger")
-//    //    .WithCronSchedule("0 37 12 ? * MON"));
-//});
-
 builder.Services.AddQuartz(q =>
 {
+    q.UseMicrosoftDependencyInjectionJobFactory();//add this line if problem occure then remvoe it
+
     if (CommonClass.ReadSetting1<bool>("QuartzJobs:GenrateToken:Enable"))
     {
 
