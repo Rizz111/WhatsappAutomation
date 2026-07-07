@@ -1,0 +1,4 @@
+﻿sc create WhatsappAutomation binPath= "Z:\Exe\WhatsappAutomation\WhatsappAutomation.exe" start= auto
+
+
+sc start WhatsappAutomation

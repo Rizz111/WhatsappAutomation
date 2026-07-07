@@ -1,4 +1,5 @@
 ﻿using DevExpress.DataAccess.Sql;
+using DevExpress.XtraPrinting.Caching;
 using DevExpress.XtraReports.UI;
 
 using Microsoft.EntityFrameworkCore;
@@ -58,12 +59,12 @@ namespace WhatsappAutomation.Services
             //}
             using (MemoryStream ms = new())
             {
-                rpt.Margins = new System.Drawing.Printing.Margins(20, 20, 20, 20); // Set margins programmatically
+                //rpt.Margins = new System.Drawing.Printing.Margins(20, 20, 20, 20); // Set margins programmatically
                 rpt.PaperKind = DevExpress.Drawing.Printing.DXPaperKind.A4;
                 try
                 {
                     rpt.ExportToPdf(ms);
-                 }
+                }
                 catch (Exception ex)
                 {
 
@@ -74,5 +75,53 @@ namespace WhatsappAutomation.Services
             }
         }
 
+        public string GenerateReport1(string reportName, string folderName, string filterString, string title = "Report Title", string range = "Report Range")
+        {
+            string reportPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports", folderName, reportName + ".repx");
+
+            if (!File.Exists(reportPath))
+            {
+                throw new FileNotFoundException($"Report file '{reportName}' not found.");
+            }
+
+            XtraReport rpt = serv.GetReport(reportPath, null);
+
+            if (!string.IsNullOrWhiteSpace(filterString))
+            {
+                string filter = filterString.Replace(rpt.DataMember + ".", "");
+                rpt.FilterString = filter;
+            }
+
+            //rpt.Margins = new System.Drawing.Printing.Margins(20, 20, 20, 20);
+            rpt.PaperKind = DevExpress.Drawing.Printing.DXPaperKind.A4;
+
+            // Create Temp folder if it doesn't exist
+            string tempFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TempPdf");
+            Directory.CreateDirectory(tempFolder);
+
+            // Unique PDF file name
+            string pdfFilePath = Path.Combine(tempFolder, $"{reportName}_{DateTime.Now:yyyyMMddHHmmssfff}.pdf");
+
+            try
+            {
+                //rpt.ExportToPdf(pdfFilePath);
+
+                var storage = new MemoryDocumentStorage();
+                var cachedReportSource = new CachedReportSource(rpt, storage);
+                cachedReportSource.CreateDocument();
+                new PdfStreamingExporter(rpt, true).Export(pdfFilePath);
+
+            }
+            catch (Exception Ex)
+            {
+
+            }
+            finally
+            {
+                rpt.Dispose();
+            }
+
+            return pdfFilePath;
+        }
     }
 }
