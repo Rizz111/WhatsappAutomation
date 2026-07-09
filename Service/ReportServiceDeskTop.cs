@@ -305,12 +305,12 @@ namespace WhatsappAutomation.Services
             //}
             using (MemoryStream ms = new())
             {
-                Report.Margins = new System.Drawing.Printing.Margins(20, 20, 20, 20); // Set margins programmatically
-                Report.PaperKind = DevExpress.Drawing.Printing.DXPaperKind.A4;
+                rpt.Margins = new System.Drawing.Printing.Margins(20, 20, 20, 20); // Set margins programmatically
+                rpt.PaperKind = DevExpress.Drawing.Printing.DXPaperKind.A4;
                 try
                 {
-                    Report.ExportToPdf(ms);
-                }
+                    rpt.ExportToPdf(ms);
+                 }
                 catch (Exception ex)
                 {
                     throw;
@@ -319,5 +319,6 @@ namespace WhatsappAutomation.Services
                 return ms.ToArray();
             }
         }
+
     }
 }
