@@ -69,9 +69,7 @@ LEFT JOIN Account_Master agent ON ac.Agent_Code = agent.Ac_Code
 Left join (select FVNo, Max(brm.Email) BrandEmail, Max(brm.MobileNo) BrandMobile from Bill_Trans btt
             left join Brand_Master brm on btt.BrandCode = brm.BrandCode
             group by FVNo) as bt  on bm.FVNo = bt.FVNo
-where 
-{Condition}
-and Left(BB.DrCr, 1) = 'D' and BB.Book_Type in ('FABRIC', 'GFABRIC','JOB', 'YARNFA')
+where {Condition} and Left(BB.DrCr, 1) = 'D' and BB.Book_Type in ('FABRIC', 'GFABRIC','JOB', 'YARNFA')
 Group by Party_Code, ac.ac_Name, agent.Ac_Name, bb.Book_Code");
 
         var BccEmail = CommonClass.ReadSetting("QuartzJobs:DailyInvoice:Email");
@@ -98,7 +96,7 @@ Group by Party_Code, ac.ac_Name, agent.Ac_Name, bb.Book_Code");
             Dictionary<string, string> Filterstring = new Dictionary<string, string>() { { "Bill_Trans", $@"[FVNo] In ({invoice.Fvno})" } };
             var Company = await sqldata.GetCompanyInfo();
             var Pdfbyte = await _report.GenerateReportAsync(ReportName, "Invoice", Filterstring, "Title", "Range");//upload document to whatsapp single time or genreate there id 
-            
+
             string FileName = $@"Invoice {invoice.PartyName}_{DateTime.Now:yyyyMMdd}.Pdf";
 
             bool useEmail = CommonClass.ReadSetting1<bool>("NotificationSettings:UseEmail");
@@ -112,12 +110,12 @@ Group by Party_Code, ac.ac_Name, agent.Ac_Name, bb.Book_Code");
                              .ToList();
                 if (UseOfficialWhatsApp)//for official whatsapp send document to multiple mobile numbers
                 {
-                    //var fileresponse = await _service.UploadFile(Pdfbyte, FileName, Company.PhoneNoId, Company.WABAToken);
+                    var fileresponse = await _service.UploadFile(Pdfbyte, FileName, Company.PhoneNoId, Company.WABAToken);
 
-                    //foreach (var mobile in mobileNumbers)//send same file to multiple mobile numbers after this loop id genrate for new document
-                    //{
-                    //    await _service.SendDocument(Company.PhoneNoId, Company.WABAToken, mobile, fileresponse.id, FileName, "document", Company.Comp_Name);
-                    //}
+                    foreach (var mobile in mobileNumbers)//send same file to multiple mobile numbers after this loop id genrate for new document
+                    {
+                        await _service.SendDocument(Company.PhoneNoId, Company.WABAToken, mobile, fileresponse.id, FileName, "document", Company.Comp_Name);
+                    }
                 }
                 else
                 {
@@ -130,10 +128,10 @@ Group by Party_Code, ac.ac_Name, agent.Ac_Name, bb.Book_Code");
                     Directory.CreateDirectory(folderPath);
 
 
-                    string filePath = Path.Combine(folderPath, files);
+                    string filePath = Path.Combine(folderPath, FileName);
 
                     // Save PDF
-                    //await File.WriteAllBytesAsync(filePath, Pdfbyte);
+                    await File.WriteAllBytesAsync(filePath, Pdfbyte);
 
                     var response = _service.GetDetails();
                     if (response == true)
@@ -152,12 +150,8 @@ Group by Party_Code, ac.ac_Name, agent.Ac_Name, bb.Book_Code");
 
             if (useEmail)
             {
-                //await _emailService.SendEmail("Invoice", $"Dear {invoice.PartyName}, Please find attached invoice for your reference.", Pdfbyte, $@"Invoice{invoice.PartyName}_{DateTime.Now:yyyyMMdd}", DateTime.Now, Company.Comp_Name, invoice.Email, BccEmail, Company.SMTPSSL);
+                await _emailService.SendEmail("Invoice", $"Dear {invoice.PartyName}, Please find attached invoice for your reference.", Pdfbyte, $@"Invoice{invoice.PartyName}_{DateTime.Now:yyyyMMdd}", DateTime.Now, Company.Comp_Name, invoice.Email, BccEmail, Company.SMTPSSL);
             }
-
-
         }
-
     }
-
 }

@@ -113,8 +113,8 @@ namespace WhatsappAutomation.Services
 
             using (MemoryStream ms = new())
             {
-                Report.Margins = new System.Drawing.Printing.Margins(20, 20, 20, 20); // Set margins programmatically
-                Report.PaperKind = DevExpress.Drawing.Printing.DXPaperKind.A4;
+                //Report.Margins = new System.Drawing.Printing.Margins(20, 20, 20, 20); // Set margins programmatically
+                //Report.PaperKind = DevExpress.Drawing.Printing.DXPaperKind.A4;
                 try
                 {
                     _logger.LogWarning("{reportName} MS Report Export Started at: {time}", reportName, DateTimeOffset.Now.ToString("dd-MMM-yyyy HH:mm:ss tt"));
@@ -305,11 +305,11 @@ namespace WhatsappAutomation.Services
             //}
             using (MemoryStream ms = new())
             {
-                rpt.Margins = new System.Drawing.Printing.Margins(20, 20, 20, 20); // Set margins programmatically
-                rpt.PaperKind = DevExpress.Drawing.Printing.DXPaperKind.A4;
+                //Report.Margins = new System.Drawing.Printing.Margins(20, 20, 20, 20); // Set margins programmatically
+                //Report.PaperKind = DevExpress.Drawing.Printing.DXPaperKind.A4;
                 try
                 {
-                    rpt.ExportToPdf(ms);
+                    Report.ExportToPdf(ms);
                  }
                 catch (Exception ex)
                 {

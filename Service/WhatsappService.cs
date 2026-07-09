@@ -39,7 +39,7 @@ public class WhatsappService
                      });
             string url = $"/v19.0/{PhoneNumberID}/messages";
 
-          
+
             var request = new RestRequest(@$"/v19.0/{PhoneNumberID}/messages", RestSharp.Method.Post);
             request.AddHeader("Authorization", @$"Bearer {Token}");
 
@@ -100,19 +100,21 @@ public class WhatsappService
                         {
                             if (resppObj.contacts[0].wa_id == "")
                             {
-                                return "Given Number is not on WhatsApp";
                                 WriteLog($"Given Number is not on WhatsApp: {MobileNo}");
                                 Console.WriteLine($"Given Number is not on WhatsApp: {MobileNo}");
+
+                                return "Given Number is not on WhatsApp";
                             }
-                            return "OK";
+
                             WriteLog($"Message sent successfully to: {MobileNo} with response: {SendTextResp}");
-                            Console.WriteLine($"Message sent successfully to: {MobileNo} with response: {SendTextResp}");   
+                            Console.WriteLine($"Message sent successfully to: {MobileNo} with response: {SendTextResp}");
+                            return "OK";
                         }
                     }
                 }
-                else 
+                else
                 {
-                WriteLog($"Failed to send message to: {MobileNo}. Status Code: {response.StatusCode}, Error Message: {response.ErrorMessage}");
+                    WriteLog($"Failed to send message to: {MobileNo}. Status Code: {response.StatusCode}, Error Message: {response.ErrorMessage}");
                     Console.WriteLine($"Failed to send message to: {MobileNo}. Status Code: {response.StatusCode}, Error Message: {response.ErrorMessage}");
                 }
         }
@@ -132,7 +134,7 @@ public class WhatsappService
     {
         if (fileBytes == null || fileBytes.Length == 0)
             return new UploadMedia();
-        
+
         var client = new RestClient(
             new RestClientOptions("https://messagingapi.charteredinfo.com")
             {
@@ -156,7 +158,7 @@ public class WhatsappService
             "application/pdf");
 
         RestResponse response = await client.ExecuteAsync(request);
-       
+
         WriteLog($"File upload Response for {fileName}: {response.Content}");
         Console.WriteLine($@"File upload Response for {fileName}: {response.Content}");
 
@@ -204,7 +206,7 @@ public class WhatsappService
         //    return string.Empty;
         //}
         //UploadMedia UploadMediaResp = JsonConvert.DeserializeObject<UploadMedia>(UplResp);
-       
+
         var request = new RestRequest(@$"/v19.0/{PhoneNumberID}/messages", RestSharp.Method.Post);
         request.AddHeader("Authorization", @$"Bearer {Token}");
         if (MobileNo.Length > 10)
@@ -351,7 +353,7 @@ public class WhatsappService
     //////--------------------------------------------------------------------------------------------------UnOffical Whatsapp Send Document To Multiple Mobile Numbers
     ///
 
-    public  bool GetDetails()
+    public bool GetDetails()
     {
         var serverName = CommonClass.ReadSetting("ServerName");
         serverName = serverName
@@ -380,7 +382,7 @@ public class WhatsappService
     }
 
 
-    public  string SendReq(string Message, string MobileNo, string PdfPath)
+    public string SendReq(string Message, string MobileNo, string PdfPath)
     {
 
 
