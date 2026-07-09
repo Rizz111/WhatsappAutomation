@@ -49,33 +49,32 @@ public class DailyInvoice : IJob
         }
         else
         {
-            Condition = "format(bm.AckDate, 'dd-MMM-yyyy') = format(GetDate(), 'dd-MMM-yyyy')";
+            //Condition = "format(bm.AckDate, 'dd-MMM-yyyy') = format(GetDate(), 'dd-MMM-yyyy')";
+            Condition = "format(bm.AckDate, 'dd-MMM-yyyy') = '21-May-2026'";
         }
 
-#if DEBUG
-        Condition = "format(bm.AckDate, 'dd-MMM-yyyy') = '21-May-2026'";
-#endif
+        //#if DEBUG
+        //        Condition = "format(bm.AckDate, 'dd-MMM-yyyy') = '21-May-2026'";
+        //#endif
 
         string ReportName = "";
-        var invoicedata = await sqldata.GetListAsync<InvoiceClass>($@"SELECT ac.ac_Name as PartyName, bm.Party_Code, agent.Ac_Name AgentName, String_Agg(bm.FVNo, ', ') Fvno, String_Agg(bm.Bill_No, ', ') Bill_Nos,
+        var invoicedata = await sqldata.GetListAsync<InvoiceClass>($@"SELECT ac.ac_Name as PartyName, bm.Party_Code, agent.Ac_Name AgentName, STRING_AGG('''' + CAST(bm.FVNo AS VARCHAR(50)) + '''', ', ') AS FVNo, String_Agg(bm.Bill_No, ', ') Bill_Nos,
 Max(ac.Mobile + ', ' + IsNull(agent.Mobile, '') + ', ' + IsNull(bt.BrandMobile, '')) as Mobile,
 Max(ac.Email + ', ' + IsNull(agent.Email, '') + ', ' + IsNull(bt.BrandEmail, '')) as Email,
 Max(Book_Type) Book_Type
 from Bill_Master bm 
-inner join (select FVNo, Max(brm.Email) BrandEmail, Max(brm.MobileNo) BrandMobile from Bill_Trans btt
-            left join Brand_Master brm on btt.BrandCode = brm.BrandCode
-            group by FVNo) as bt  on bm.FVNo = bt.FVNo
 Inner join book_Master BB on BB.Book_Code = bm.Book_Code
 INNER JOIN Account_Master ac ON ac.Ac_Code = bm.party_Code
 LEFT JOIN Account_Master agent ON ac.Agent_Code = agent.Ac_Code
+Left join (select FVNo, Max(brm.Email) BrandEmail, Max(brm.MobileNo) BrandMobile from Bill_Trans btt
+            left join Brand_Master brm on btt.BrandCode = brm.BrandCode
+            group by FVNo) as bt  on bm.FVNo = bt.FVNo
 where 
 {Condition}
 and Left(BB.DrCr, 1) = 'D' and BB.Book_Type in ('FABRIC', 'GFABRIC','JOB', 'YARNFA')
 Group by Party_Code, ac.ac_Name, agent.Ac_Name, bb.Book_Code");
 
-
         var BccEmail = CommonClass.ReadSetting("QuartzJobs:DailyInvoice:Email");
-
 
         foreach (var invoice in invoicedata)
         {
@@ -96,9 +95,10 @@ Group by Party_Code, ac.ac_Name, agent.Ac_Name, bb.Book_Code");
                 ReportName = "YarnInvoiceGstEinvWA";
             }
 
-            string Filterstring = $@"[Fvno] In ({invoice.Fvno})";
-            var Pdfbyte = await _report.GenerateReportAsync(ReportName, "Invoice", Filterstring, "Title", "Range");//upload document to whatsapp single time or genreate there id 
+            Dictionary<string, string> Filterstring = new Dictionary<string, string>() { { "Bill_Trans", $@"[FVNo] In ({invoice.Fvno})" } };
             var Company = await sqldata.GetCompanyInfo();
+            var Pdfbyte = await _report.GenerateReportAsync(ReportName, "Invoice", Filterstring, "Title", "Range");//upload document to whatsapp single time or genreate there id 
+            
             string FileName = $@"Invoice {invoice.PartyName}_{DateTime.Now:yyyyMMdd}.Pdf";
 
             bool useEmail = CommonClass.ReadSetting1<bool>("NotificationSettings:UseEmail");
@@ -140,7 +140,7 @@ Group by Party_Code, ac.ac_Name, agent.Ac_Name, bb.Book_Code");
                     {
                         foreach (var mobile in mobileNumbers)//send same file to multiple mobile numbers after this loop id genrate for new document
                         {
-                            _service.SendReq(@$"Dear Customer, We Are Sending You Invoice {invoice.Bill_Nos} from *{Company.Comp_Name}*", mobile, filePath);
+                            _service.SendReq(@$"Dear Customer, We Are Sending You Invoice {invoice.Bill_Nos} from *{Company.Comp_Name}*", "7023160286", filePath);
                         }
                     }
                     else

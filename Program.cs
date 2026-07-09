@@ -19,7 +19,6 @@ builder.Services.AddWindowsService(options =>
     options.ServiceName = "WhatsappAutomation";
 });
 
-
 builder.Services.AddScoped<WhatsappService>();
 builder.Services.AddHostedService<Worker>();
 builder.Services.AddScoped<IReportProvider, ReportByNameService>();

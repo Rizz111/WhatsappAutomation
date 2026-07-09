@@ -37,9 +37,9 @@ public class WeaklyCreditorOutstanding : IJob
         try
         {
             var Filterstring = @$"[LateDays] > 30";
-
-            var pdfBytes = await _reportservice.GenerateReportAsync("OutsCreditors", "OutStanding", Filterstring);
             var compnayinfo = await sqldata.GetListAsync<Compnay>($@"Select PhoneNoId, WABAUserId, WABAUserPassword, WABAID, WABAToken, WABAAuthTokenCallTime, Comp_Name, Mobile, GSTNo from Company_Master");
+            var pdfBytes = await _reportservice.GenerateReportAsync_Old("OutsCreditors", "OutStanding", Filterstring);
+  
 
 
             var company = compnayinfo.FirstOrDefault();

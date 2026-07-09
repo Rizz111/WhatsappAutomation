@@ -133,7 +133,7 @@ public class EmailService
             }
 
             message.Body = builder.ToMessageBody();
-            SendEmailWithRetry(message, compnay.SMTPServer, compnay.SMTPPort, compnay.SenderEmail, compnay.MailPassword, ssl);
+            SendEmailWithRetry(message, compnay.SMTPServer, Convert.ToInt32(compnay.SMTPPort), compnay.SenderEmail, compnay.MailPassword, ssl);
         }
         catch (Exception ex)
         {
