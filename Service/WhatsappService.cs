@@ -9,14 +9,18 @@ namespace WhatsappAutomation.Service;
 
 public class WhatsappService
 {
+
     private static readonly object _logLock = new();
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> _phoneLocks =
     new ConcurrentDictionary<string, SemaphoreSlim>();
 
+
+
+
     public async Task<string> SendTextWithTemplateMessage(string PhoneNumberID, string Token, string MobileNo, string WaType, params string[] strings)
     {
 #if DEBUG
-        MobileNo = "8233029994";
+        MobileNo = "7023160286";
 #endif
 
         // Normalize the number first
@@ -25,11 +29,6 @@ public class WhatsappService
             MobileNo = $"91{MobileNo}";
         }
 
-        var semaphore = _phoneLocks.GetOrAdd(
-            MobileNo,
-            _ => new SemaphoreSlim(1, 1));
-
-        await semaphore.WaitAsync();
         try
         {
             var client = new RestClient(
@@ -120,12 +119,7 @@ public class WhatsappService
         }
         finally
         {
-            semaphore.Release();
-            if (semaphore.CurrentCount == 1)
-            {
-                _phoneLocks.TryRemove(MobileNo, out _);
-                semaphore.Dispose();
-            }
+            
         }
         return string.Empty;
     }
@@ -189,7 +183,7 @@ public class WhatsappService
     public async Task<string> SendDocument(string PhoneNumberID, string Token, string MobileNo, string DocumentId, string FileName, string WaType, params string[] strings)
     {
 #if DEBUG
-        MobileNo = "8233029994";
+        MobileNo = "7023160286";
 #endif
 
         var client = new RestClient(
@@ -252,21 +246,43 @@ public class WhatsappService
 
         body.template.components = new List<SendMediaPayLoad.Component> { HeaderCompoments };
 
+        //foreach (var x in strings)
+        //{
+        //    body.template.components.Add(new SendMediaPayLoad.Component
+        //    {
+        //        type = "body",
+        //        parameters = new List<SendMediaPayLoad.Parameter>
+        //            {
+        //                new SendMediaPayLoad.Parameter
+        //                {
+        //                    type = "text",
+        //                    text = x
+        //                }
+        //            }
+        //    });
+        //}
+
+        if (body.template.components == null)
+            body.template.components = new();
+
+        var parameters = new List<SendMediaPayLoad.Parameter>();
+
         foreach (var x in strings)
         {
-            body.template.components.Add(new SendMediaPayLoad.Component
+            parameters.Add(new SendMediaPayLoad.Parameter
             {
-                type = "body",
-                parameters = new List<SendMediaPayLoad.Parameter>
-                    {
-                        new SendMediaPayLoad.Parameter
-                        {
-                            type = "text",
-                            text = x
-                        }
-                    }
+                type = "text",
+                text = x,
+                Document = null
             });
         }
+
+        body.template.components.Add(new SendMediaPayLoad.Component
+        {
+            type = "body",
+            parameters = parameters
+        });
+
 
         string newText = JsonConvert.SerializeObject(body);
 

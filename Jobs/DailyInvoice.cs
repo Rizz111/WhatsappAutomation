@@ -5,6 +5,7 @@ using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using TexERP.Commons;
@@ -20,15 +21,16 @@ public class DailyInvoice : IJob
     private ReportServiceDeskTop _report;
     private WhatsappService _service;
     private EmailService _emailService;
+    private readonly ILogger<Worker> _logger;
 
 
-
-    public DailyInvoice(GetSqlData sql, ReportServiceDeskTop report, WhatsappService service, EmailService emailService)
+    public DailyInvoice(GetSqlData sql, ReportServiceDeskTop report, WhatsappService service, EmailService emailService, ILogger<Worker> logger)
     {
         sqldata = sql;
         _report = report;
         _service = service;
         _emailService = emailService;
+        _logger = logger;
     }
 
     public async Task Execute(IJobExecutionContext context)
@@ -38,24 +40,35 @@ public class DailyInvoice : IJob
 
     public async Task GenrateInvoce()
     {
+        int FabCount = 0, GFabCount = 0, JobCount = 0, YarnCount = 0;
 
+        bool UseOfficialWhatsApp = CommonClass.ReadSetting1<bool>("NotificationSettings:UseOfficialWhatsApp");
+        var AdminMobile = CommonClass.ReadSetting("QuartzJobs:DailyInvoice:MobileNo");
+        bool useEmail = CommonClass.ReadSetting1<bool>("NotificationSettings:UseEmail");
+        bool useWhatsApp = CommonClass.ReadSetting1<bool>("NotificationSettings:UseWhatsApp");
         var SendType = CommonClass.ReadSetting("QuartzJobs:DailyInvoice:SendType");
 
+        var BccEmail = CommonClass.ReadSetting("QuartzJobs:DailyInvoice:BccEmail");
+        var AdminEmail = CommonClass.ReadSetting("QuartzJobs:DailyInvoice:AdminEmail");
+
+        var Company = await sqldata.GetCompanyInfo();
         string Condition = "";
+        string JobRunDate = "";
+
+
+
 
         if (SendType == "Prev Day")
         {
+            JobRunDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-1)).ToString("dd-MMM-yyyy");
             Condition = "format(bm.AckDate, 'dd-MMM-yyyy') = format(DateAdd(d, -1, GetDate()), 'dd-MMM-yyyy')";
+            //Condition    = "format(bm.AckDate, 'dd-MMM-yyyy') = '21-FEB-2026'";
         }
         else
         {
-            //Condition = "format(bm.AckDate, 'dd-MMM-yyyy') = format(GetDate(), 'dd-MMM-yyyy')";
-            Condition = "format(bm.AckDate, 'dd-MMM-yyyy') = '21-May-2026'";
+            JobRunDate = DateOnly.FromDateTime(DateTime.Today).ToString("dd-MMM-yyyy");
+            Condition = "format(bm.AckDate, 'dd-MMM-yyyy') = format(GetDate(), 'dd-MMM-yyyy')";
         }
-
-        //#if DEBUG
-        //        Condition = "format(bm.AckDate, 'dd-MMM-yyyy') = '21-May-2026'";
-        //#endif
 
         string ReportName = "";
         var invoicedata = await sqldata.GetListAsync<InvoiceClass>($@"SELECT ac.ac_Name as PartyName, bm.Party_Code, agent.Ac_Name AgentName, STRING_AGG('''' + CAST(bm.FVNo AS VARCHAR(50)) + '''', ', ') AS FVNo, String_Agg(bm.Bill_No, ', ') Bill_Nos,
@@ -72,38 +85,40 @@ Left join (select FVNo, Max(brm.Email) BrandEmail, Max(brm.MobileNo) BrandMobile
 where {Condition} and Left(BB.DrCr, 1) = 'D' and BB.Book_Type in ('FABRIC', 'GFABRIC','JOB', 'YARNFA')
 Group by Party_Code, ac.ac_Name, agent.Ac_Name, bb.Book_Code");
 
-        var BccEmail = CommonClass.ReadSetting("QuartzJobs:DailyInvoice:Email");
-
         foreach (var invoice in invoicedata)
         {
+           
             if (invoice.Book_Type == "FABRIC")
             {
                 ReportName = "InvoiceGSTeinvWA";
+                FabCount++;
             }
             else if (invoice.Book_Type == "GFABRIC")
             {
                 ReportName = "GreyInvoiceGSTeinvWA";
+                GFabCount++;
             }
             else if (invoice.Book_Type == "JOB")
             {
                 ReportName = "JobInvoiceGSTeinvWA";
+                JobCount++;
             }
             else if (invoice.Book_Type == "YARNFA")
             {
                 ReportName = "YarnInvoiceGstEinvWA";
+                YarnCount++;
             }
 
             Dictionary<string, string> Filterstring = new Dictionary<string, string>() { { "Bill_Trans", $@"[FVNo] In ({invoice.Fvno})" } };
-            var Company = await sqldata.GetCompanyInfo();
+
             var Pdfbyte = await _report.GenerateReportAsync(ReportName, "Invoice", Filterstring, "Title", "Range");//upload document to whatsapp single time or genreate there id 
 
             string FileName = $@"Invoice {invoice.PartyName}_{DateTime.Now:yyyyMMdd}.Pdf";
 
-            bool useEmail = CommonClass.ReadSetting1<bool>("NotificationSettings:UseEmail");
-            bool useWhatsApp = CommonClass.ReadSetting1<bool>("NotificationSettings:UseWhatsApp");
-            bool UseOfficialWhatsApp = CommonClass.ReadSetting1<bool>("NotificationSettings:UseOfficialWhatsApp");
+
             if (useWhatsApp)
             {
+                _logger.LogInformation($"WhatsApp Service Hit");
                 var mobileNumbers = invoice.Mobile
                              .Split(',', StringSplitOptions.RemoveEmptyEntries)
                              .Select(x => x.Trim()).Distinct()
@@ -140,6 +155,9 @@ Group by Party_Code, ac.ac_Name, agent.Ac_Name, bb.Book_Code");
                         {
                             _service.SendReq(@$"Dear Customer, We Are Sending You Invoice {invoice.Bill_Nos} from *{Company.Comp_Name}*", mobile, filePath);
                         }
+
+
+                        //==========================summary of sent invoice=========================
                     }
                     else
                     {
@@ -149,9 +167,59 @@ Group by Party_Code, ac.ac_Name, agent.Ac_Name, bb.Book_Code");
             }
 
             if (useEmail)
-            {
-                await _emailService.SendEmail("Invoice", $"Dear {invoice.PartyName}, Please find attached invoice for your reference.", Pdfbyte, $@"Invoice{invoice.PartyName}_{DateTime.Now:yyyyMMdd}", DateTime.Now, Company.Comp_Name, invoice.Email, BccEmail, Company.SMTPSSL);
+            {_logger.LogInformation($"Email Service Hit");
+                await _emailService.SendEmail("Invoice", $"Dear {invoice.PartyName}, Please find attached invoice for your reference.", Pdfbyte, $@"Invoice{invoice.PartyName}_{DateTime.Now:yyyyMMdd}", DateTime.Now, invoice.Email, BccEmail, Company.SMTPSSL);
             }
+
+
+
         }
+
+        Console.WriteLine("Invoice Job Don");
+        //===========================================================For Confirmation To Admin And Company=========================================================
+        string Text = $"Dear Admin {JobRunDate}Total Invoice Sent : {invoicedata.Count()} , Fabric : {FabCount} , Grey Fabric : {GFabCount} , Job : {JobCount} , Yarn : {YarnCount}";
+
+        if (useWhatsApp)
+        {
+            if (UseOfficialWhatsApp)//for official whatsapp send document to multiple mobile numbers
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.Append(@$"Total Invoice Sent : {invoicedata.Count()}");
+                if (FabCount > 0)
+                {
+                    sb.AppendLine($"Fabric : {FabCount}");
+                }
+                if (GFabCount > 0)
+                {
+                    sb.AppendLine($"Grey Fabric : {GFabCount}");
+                }
+                if (JobCount > 0)
+                {
+                    sb.AppendLine($"Job : {JobCount}");
+                }
+                if (YarnCount > 0)
+                {
+                    sb.AppendLine($"Yarn : {YarnCount}");
+                }
+
+                await _service.SendTextWithTemplateMessage(Company.PhoneNoId, Company.WABAToken, AdminMobile, "adminconfirmation", sb.ToString());//For Admin Confirmation
+
+                await _service.SendTextWithTemplateMessage(Company.PhoneNoId, Company.WABAToken, "8233029994", "adminconfirmation", sb.ToString());//For Company Confirmation
+            }
+            else
+            {
+                _service.SendReq(Text, AdminMobile, "");//For Admin Confirmation
+                _service.SendReq(Text, "8233029994", "");//For Company Confirmation
+            }
+
+        }
+
+
+        if (useEmail)
+        {
+            await _emailService.SendEmail(@$"Daily Invoice Summary For {JobRunDate}", Text, null, null, DateTime.Now, AdminEmail,"", Company.SMTPSSL);
+            await _emailService.SendEmail(@$"Daily Invoice Summary For {JobRunDate} {Company.Comp_Name}", Text, null, null, DateTime.Now, "asohil07@yahoo.com", "", Company.SMTPSSL);
+        }
+
     }
 }
