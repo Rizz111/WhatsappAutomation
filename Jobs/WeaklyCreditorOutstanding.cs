@@ -60,8 +60,8 @@ public class WeaklyCreditorOutstanding : IJob
 
             string OwnerMobileNumber = CommonClass.ReadSetting("QuartzJobs:WeeklyCredOutstanding:MobileNo");
             string OwnerEmailAddress = CommonClass.ReadSetting("QuartzJobs:WeeklyCredOutstanding:Email");
-            var mobileNumbers = OwnerMobileNumber.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).Distinct().ToList();
-            var EmailAddress = OwnerEmailAddress.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).Distinct().ToList();
+            var mobileNumbers = OwnerMobileNumber.Split(',').Select(x => x.Trim()).Distinct().Where(z => z != "").ToList();
+            var EmailAddress = OwnerEmailAddress.Split(',').Select(x => x.Trim()).Distinct().Where(z => z != "").ToList();
 
             //---------------------------------------------------------------------------------------------------Get Mobile Numbers and Email Addresses From Appsetting and Create A list If Multiple Number-------------------------------------
 

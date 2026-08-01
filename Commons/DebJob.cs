@@ -78,13 +78,13 @@ ORDER BY MAX(LateDays) DESC, PartyName";
             foreach (var item in DebOutsLs)
             {
                 var mobileNumbers = item.MobileNo
-                     .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                     .Select(x => x.Trim()).Distinct()
-                     .ToList();
+                             .Split(',')
+                             .Select(x => x.Trim()).Distinct().Where(z => z != "")
+                             .ToList();
                 var emails = item.Emails
-                     .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                     .Select(x => x.Trim()).Distinct()
-                     .ToList();
+                             .Split(',')
+                             .Select(x => x.Trim()).Distinct().Where(z => z != "")
+                             .ToList();
 
                 bool useEmail = CommonClass.ReadSetting1<bool>("NotificationSettings:UseEmail");
                 bool useWhatsApp = CommonClass.ReadSetting1<bool>("NotificationSettings:UseWhatsApp");
@@ -102,8 +102,11 @@ ORDER BY MAX(LateDays) DESC, PartyName";
 
                         //----------------------------------------------------------------------------------------------------------------send to party according to loop number
                         string OwnerNumber = CommonClass.ReadSetting1<string>("QuartzJobs:WeeklyDebOutstanding:MobileNo");
-                        var OwnerNumbers = OwnerNumber.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).Distinct().ToList();
-                        foreach(var Omobile in OwnerNumbers)
+                        var OwnerNumbers = OwnerNumber
+                             .Split(',')
+                             .Select(x => x.Trim()).Distinct().Where(z => z != "")
+                             .ToList();
+                        foreach (var Omobile in OwnerNumbers)
                         {
                             await _service.SendTextWithTemplateMessage(company.PhoneNoId, company.WABAToken, Omobile, "tempoutstanding", item.PartyName, item.BillNos, item.OutStanding.ToString("0.00"), company.Comp_Name);
                                                      

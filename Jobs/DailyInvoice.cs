@@ -62,7 +62,7 @@ public class DailyInvoice : IJob
         {
             JobRunDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-1)).ToString("dd-MMM-yyyy");
             Condition = "format(bm.AckDate, 'dd-MMM-yyyy') = format(DateAdd(d, -1, GetDate()), 'dd-MMM-yyyy')";
-            //Condition    = "format(bm.AckDate, 'dd-MMM-yyyy') = '21-FEB-2026'";
+            //Condition = "format(bm.AckDate, 'dd-MMM-yyyy') = '21-FEB-2026'";
         }
         else
         {
@@ -87,7 +87,7 @@ Group by Party_Code, ac.ac_Name, agent.Ac_Name, bb.Book_Code");
 
         foreach (var invoice in invoicedata)
         {
-           
+
             if (invoice.Book_Type == "FABRIC")
             {
                 ReportName = "InvoiceGSTeinvWA";
@@ -120,8 +120,8 @@ Group by Party_Code, ac.ac_Name, agent.Ac_Name, bb.Book_Code");
             {
                 _logger.LogInformation($"WhatsApp Service Hit");
                 var mobileNumbers = invoice.Mobile
-                             .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                             .Select(x => x.Trim()).Distinct()
+                             .Split(',')
+                             .Select(x => x.Trim()).Distinct().Where(z => z != "")
                              .ToList();
                 if (UseOfficialWhatsApp)//for official whatsapp send document to multiple mobile numbers
                 {
@@ -156,7 +156,6 @@ Group by Party_Code, ac.ac_Name, agent.Ac_Name, bb.Book_Code");
                             _service.SendReq(@$"Dear Customer, We Are Sending You Invoice {invoice.Bill_Nos} from *{Company.Comp_Name}*", mobile, filePath);
                         }
 
-
                         //==========================summary of sent invoice=========================
                     }
                     else
@@ -167,59 +166,55 @@ Group by Party_Code, ac.ac_Name, agent.Ac_Name, bb.Book_Code");
             }
 
             if (useEmail)
-            {_logger.LogInformation($"Email Service Hit");
-                await _emailService.SendEmail("Invoice", $"Dear {invoice.PartyName}, Please find attached invoice for your reference.", Pdfbyte, $@"Invoice{invoice.PartyName}_{DateTime.Now:yyyyMMdd}", DateTime.Now, invoice.Email, BccEmail, Company.SMTPSSL);
-            }
-
-
-
-        }
-
-        Console.WriteLine("Invoice Job Don");
-        //===========================================================For Confirmation To Admin And Company=========================================================
-        string Text = $"Dear Admin {JobRunDate}Total Invoice Sent : {invoicedata.Count()} , Fabric : {FabCount} , Grey Fabric : {GFabCount} , Job : {JobCount} , Yarn : {YarnCount}";
-
-        if (useWhatsApp)
-        {
-            if (UseOfficialWhatsApp)//for official whatsapp send document to multiple mobile numbers
             {
-                StringBuilder sb = new StringBuilder();
-                sb.Append(@$"Total Invoice Sent : {invoicedata.Count()}");
-                if (FabCount > 0)
-                {
-                    sb.AppendLine($"Fabric : {FabCount}");
-                }
-                if (GFabCount > 0)
-                {
-                    sb.AppendLine($"Grey Fabric : {GFabCount}");
-                }
-                if (JobCount > 0)
-                {
-                    sb.AppendLine($"Job : {JobCount}");
-                }
-                if (YarnCount > 0)
-                {
-                    sb.AppendLine($"Yarn : {YarnCount}");
-                }
-
-                await _service.SendTextWithTemplateMessage(Company.PhoneNoId, Company.WABAToken, AdminMobile, "adminconfirmation", sb.ToString());//For Admin Confirmation
-
-                await _service.SendTextWithTemplateMessage(Company.PhoneNoId, Company.WABAToken, "8233029994", "adminconfirmation", sb.ToString());//For Company Confirmation
+                _logger.LogInformation($"Email Service Hit");
+                await _emailService.SendEmail(@$"{invoice.PartyName}-Invoice from {Company.Comp_Name}", $"Dear {invoice.PartyName}, Please find attached invoice for your reference.", Pdfbyte, $@"Invoice{invoice.PartyName}_{DateTime.Now:yyyyMMdd}", DateTime.Now, invoice.Email, BccEmail, Company.SMTPSSL);
             }
-            else
-            {
-                _service.SendReq(Text, AdminMobile, "");//For Admin Confirmation
-                _service.SendReq(Text, "8233029994", "");//For Company Confirmation
-            }
-
         }
 
-
-        if (useEmail)
+        Console.WriteLine("Invoice Job Done");
+        //===========================For Confirmation To Admin And Company===========================
+        if (invoicedata.Count() != 0)
         {
-            await _emailService.SendEmail(@$"Daily Invoice Summary For {JobRunDate}", Text, null, null, DateTime.Now, AdminEmail,"", Company.SMTPSSL);
-            await _emailService.SendEmail(@$"Daily Invoice Summary For {JobRunDate} {Company.Comp_Name}", Text, null, null, DateTime.Now, "asohil07@yahoo.com", "", Company.SMTPSSL);
-        }
+            string Text = $"Dear Admin {JobRunDate}Total Invoice Sent : {invoicedata.Count()} , Fabric : {FabCount} , Grey Fabric : {GFabCount} , Job : {JobCount} , Yarn : {YarnCount}";
 
+            if (useWhatsApp)
+            {
+                if (UseOfficialWhatsApp)//for official whatsapp send document to multiple mobile numbers
+                {
+                    StringBuilder sb = new StringBuilder();
+                    sb.Append($"Total Invoice Sent: {invoicedata.Count()}");
+
+                    if (FabCount != 0)
+                        sb.Append($", Fabric: {FabCount}");
+
+                    if (GFabCount != 0)
+                        sb.Append($", Grey Fabric: {GFabCount}");
+
+                    if (JobCount != 0)
+                        sb.Append($", Job: {JobCount}");
+
+                    if (YarnCount != 0)
+                        sb.Append($", Yarn: {YarnCount}");
+
+                    string summary = sb.ToString();
+
+                    await _service.SendTextWithTemplateMessage(Company.PhoneNoId, Company.WABAToken, AdminMobile, "adminconfirmation", summary);//For Admin Confirmation
+
+                    await _service.SendTextWithTemplateMessage(Company.PhoneNoId, Company.WABAToken, "8233029994", "adminconfirmation", summary);//For Company Confirmation
+                }
+                else
+                {
+                    _service.SendReq(Text, AdminMobile, "");//For Admin Confirmation
+                    _service.SendReq(Text, "8233029994", "");//For Company Confirmation
+                }
+            }
+
+            if (useEmail)
+            {
+                await _emailService.SendEmail(@$"Daily Invoice Summary For {JobRunDate}", Text, null, null, DateTime.Now, AdminEmail, "", Company.SMTPSSL);
+                await _emailService.SendEmail(@$"Daily Invoice Summary For {JobRunDate} {Company.Comp_Name}", Text, null, null, DateTime.Now, "asohil07@yahoo.com", "", Company.SMTPSSL);
+            }
+        }
     }
 }

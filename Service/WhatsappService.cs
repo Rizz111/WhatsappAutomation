@@ -105,8 +105,8 @@ public class WhatsappService
                                 return "Given Number is not on WhatsApp";
                             }
 
-                            WriteLog($"Message sent successfully to: {MobileNo} with response: {SendTextResp}");
-                            Console.WriteLine($"Message sent successfully to: {MobileNo} with response: {SendTextResp}");
+                            WriteLog($"Message sent successfully to: {MobileNo}");
+                            Console.WriteLine($"Message sent successfully to: {MobileNo}");
                             return "OK";
                         }
                     }
@@ -289,7 +289,7 @@ public class WhatsappService
         request.AddParameter("application/json", newText, ParameterType.RequestBody);
         //request.AddParameter("text/plain", body, ParameterType.RequestBody);
         RestResponse response = await client.ExecuteAsync(request);
-        WriteLog($"Message with {FileName}: {response.Content}");
+        WriteLog($"Message Response Of {MobileNo} With {FileName}:- {response.Content}");
         Console.WriteLine($"Response For {FileName}: {response.Content}");
         if (response != null)
             if (response.IsSuccessful && response.Content != null)
@@ -304,12 +304,12 @@ public class WhatsappService
                         if (resppObj.contacts[0].wa_id == "")
                         {
                             return "Given Number is not on WhatsApp";
-                            WriteLog($"Given Number is not on WhatsApp: {MobileNo} with response: {SendTextResp}");
-                            Console.WriteLine($"Given Number is not on WhatsApp: {MobileNo} with response: {SendTextResp}");
+                            WriteLog($"Given Number is not on WhatsApp: {MobileNo}");
+                            Console.WriteLine($"Given Number is not on WhatsApp: {MobileNo}");
                         }
                         return "OK";
-                        WriteLog($"Message sent successfully to: {MobileNo} with response: {SendTextResp} and file: {FileName}");
-                        Console.WriteLine($"Message sent successfully to: {MobileNo} with response: {SendTextResp} and file: {FileName}");
+                        WriteLog($"Message sent successfully to: {MobileNo} with  file: {FileName}");
+                        Console.WriteLine($"Message sent successfully to: {MobileNo} with  file: {FileName}");
                     }
                 }
                 else
@@ -373,8 +373,9 @@ public class WhatsappService
     {
         var serverName = CommonClass.ReadSetting("ServerName");
         serverName = serverName
-   .Split(',', StringSplitOptions.RemoveEmptyEntries)[0]
-   .Trim();
+                             .Split(',')
+                             .Select(x => x.Trim()).Distinct().Where(z => z != "")
+                             .ToList()[0];
         var client = new RestClient(@$"http://{serverName}:3000/me");
         var request = new RestRequest()
         {
@@ -410,8 +411,9 @@ public class WhatsappService
 
         var serverName = CommonClass.ReadSetting("ServerName");
         serverName = serverName
-   .Split(',', StringSplitOptions.RemoveEmptyEntries)[0]
-   .Trim();
+                             .Split(',')
+                             .Select(x => x.Trim()).Distinct().Where(z => z != "")
+                             .ToList()[0];
         RestResponse response = new();
 
         var client = new RestClient(@$"http://{serverName}:3000/send");

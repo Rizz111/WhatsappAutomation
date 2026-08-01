@@ -41,9 +41,14 @@ builder.Services.AddQuartz(q =>
         q.AddJob<GenrateToken>(opts =>
             opts.WithIdentity(GenrateTokenJobKey));
 
-        q.AddTrigger(opts =>
-            opts.ForJob(GenrateTokenJobKey)
-            .WithIdentity("GenrateToken-trigger")
+        q.AddTrigger(opts => opts
+    .ForJob(GenrateTokenJobKey)
+    .WithIdentity("GenrateToken-startup-trigger")
+    .StartNow());
+
+        q.AddTrigger(opts => opts
+            .ForJob(GenrateTokenJobKey)
+            .WithIdentity("GenrateToken-cron-trigger")
             .WithCronSchedule(CommonClass.ReadSetting("QuartzJobs:GenrateToken:Cron")));
     }
 

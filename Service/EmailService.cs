@@ -34,7 +34,7 @@ public class EmailService
         _logger = logger;
     }
 
-    private static void WriteLog(string message,string FolderName)
+    private static void WriteLog(string message, string FolderName)
     {
         try
         {
@@ -52,7 +52,7 @@ public class EmailService
         }
         catch (Exception ex)
         {
-            
+
             throw; // optional, if you want the Quartz job to fail
         }
     }
@@ -60,10 +60,10 @@ public class EmailService
 
     public async Task SendEmail(string Title, string BodyMgs, byte[] fileBytes, string fileName, DateTime dateTime, string recipientEmail, string OwnerEmailAddress, bool ssl)
     {
-//#if DEBUG
-//        recipientEmail = "rizzcoding@gmail.com";
-//        OwnerEmailAddress = recipientEmail;
-//#endif
+#if DEBUG
+        recipientEmail = "rizzcoding@gmail.com";
+        OwnerEmailAddress = "asohil07@yahoo.com";
+#endif
         try
         {
             _logger.LogInformation($"Preparing to send email to {recipientEmail} with title '{Title}'");
@@ -71,10 +71,11 @@ public class EmailService
             var message = new MimeMessage();
             //message.From.Add(new MailboxAddress(smtpUsername, smtpUsername));
             message.From.Add(new MailboxAddress(compnay.SenderEmail, compnay.SenderEmail));
-  recipientEmail = recipientEmail.TrimEnd(' ', ',');
-            var recipientEmails = recipientEmail.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                     .Select(x => x.Trim()).Distinct()
-                     .ToList();
+            recipientEmail = recipientEmail.TrimEnd(' ', ',');
+            var recipientEmails = recipientEmail
+                             .Split(',')
+                             .Select(x => x.Trim()).Distinct().Where(z => z != "")
+                             .ToList();
             if (!recipientEmails.Any())
                 return;
 
@@ -102,19 +103,19 @@ public class EmailService
                     message.Cc.Add(new MailboxAddress(recipientEmails[i], recipientEmails[i]));
                 }
             }
-
-            if (OwnerEmailAddress.Any())
+            if (!string.IsNullOrWhiteSpace(OwnerEmailAddress))
             {
+                var ownerEmails = OwnerEmailAddress
+                             .Split(',')
+                             .Select(x => x.Trim()).Distinct().Where(z => z != "")
+                             .ToList();
 
-
-
-                var OwnerEmailAddressLs = OwnerEmailAddress.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).Distinct().ToList();
-
-                if (OwnerEmailAddressLs.Count() > 1)
+                foreach (var email in ownerEmails)
                 {
-                    for (int i = 1; i < OwnerEmailAddressLs.Count(); i++)
+                    if (new EmailAddressAttribute().IsValid(email))
                     {
-                        message.Bcc.Add(new MailboxAddress(OwnerEmailAddressLs[i], OwnerEmailAddressLs[i]));
+                        //message.Bcc.Add(MailboxAddress.Parse(email));
+                        message.Cc.Add(MailboxAddress.Parse(email));
                     }
                 }
             }
@@ -140,7 +141,7 @@ public class EmailService
             }
 
             message.Body = builder.ToMessageBody();
-          await  SendEmailWithRetry(message, compnay.SMTPServer, Convert.ToInt32(compnay.SMTPPort), compnay.SenderEmail, compnay.MailPassword, ssl);
+            await SendEmailWithRetry(message, compnay.SMTPServer, Convert.ToInt32(compnay.SMTPPort), compnay.SenderEmail, compnay.MailPassword, ssl);
             _logger.LogInformation($"Retry Method CALL FOR EMAIL SEND");
         }
         catch (Exception ex)
@@ -158,7 +159,8 @@ public class EmailService
         while (retryCount < MaxRetryAttempts)
         {
             try
-            {_logger.LogInformation($"Attempting to send email to {string.Join(", ", message.To.Select(x => x.ToString()))}. Attempt {retryCount + 1}/{MaxRetryAttempts}");
+            {
+                _logger.LogInformation($"Attempting to send email to {string.Join(", ", message.To.Select(x => x.ToString()))}. Attempt {retryCount + 1}/{MaxRetryAttempts}");
                 using var client = new MailKit.Net.Smtp.SmtpClient();
                 try
                 {
@@ -174,7 +176,7 @@ public class EmailService
                         options = SecureSocketOptions.Auto;
 
                     client.Connect(smtpServer, smtpPort, options);
-                    _logger.LogInformation($"Connected to SMTP server {smtpServer}:{smtpPort} with SSL option {options}");  
+                    _logger.LogInformation($"Connected to SMTP server {smtpServer}:{smtpPort} with SSL option {options}");
                 }
                 catch (SslHandshakeException)
                 {
@@ -226,7 +228,8 @@ public class EmailService
                 retryCount++;
 
                 if (retryCount < MaxRetryAttempts)
-                {_logger.LogInformation($"Retrying in {delayMs}ms");
+                {
+                    _logger.LogInformation($"Retrying in {delayMs}ms");
                     WriteLog($"Retrying in {delayMs}ms", "Email");
                     Thread.Sleep(delayMs);
                     delayMs *= 2;
@@ -236,7 +239,8 @@ public class EmailService
 
         // All retries exhausted
         if (lastException != null)
-        {_logger.LogError($"Email send failed after {MaxRetryAttempts} attempts: {lastException.Message}");
+        {
+            _logger.LogError($"Email send failed after {MaxRetryAttempts} attempts: {lastException.Message}");
             WriteLog($"Email send failed after {MaxRetryAttempts} attempts: {lastException.Message}", "Email");
         }
     }
