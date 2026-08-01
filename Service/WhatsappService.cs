@@ -364,7 +364,7 @@ public class WhatsappService
         }
     }
 
-
+    /*
 
     //////--------------------------------------------------------------------------------------------------UnOffical Whatsapp Send Document To Multiple Mobile Numbers
     ///
@@ -401,8 +401,6 @@ public class WhatsappService
 
     public string SendReq(string Message, string MobileNo, string PdfPath)
     {
-
-
         if (PdfPath != string.Empty)
             PdfPath = Path.GetFullPath(PdfPath);
 #if DEBUG
@@ -443,7 +441,7 @@ public class WhatsappService
         public string message { get; set; }
         public string file { get; set; }
     }
-
+    */
 
 
 }

@@ -73,14 +73,14 @@ public class WeaklyCreditorOutstanding : IJob
 
                     foreach (var mobile in mobileNumbers)//for send file same file to multiple mobile numbers
                     {
-                       
+
 
                         await _service.SendDocument(company.PhoneNoId, company.WABAToken, mobile, fileResponse.id, FileName, "document", company.Comp_Name);
 
                     }
 
                 }
-                else 
+                else
                 {
                     //------------------------------------Unofficial WhatsApp Service--------------------------------------
 
@@ -94,7 +94,7 @@ public class WeaklyCreditorOutstanding : IJob
 
                     // Save PDF
                     await File.WriteAllBytesAsync(filePath, pdfBytes);
-
+                    /*
                     var response = _service.GetDetails();
                     if (response == true)
                     {
@@ -116,7 +116,7 @@ public class WeaklyCreditorOutstanding : IJob
                     {
                         Console.WriteLine("Your Port Is Not Open Plese Check And Open Them For Use WhatsappService");
                     }
-
+                    */
                 }
                 _logger.LogInformation($@"Whatsapp Job Complete For Creditor OutStanding");
 

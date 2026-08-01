@@ -19,7 +19,7 @@ public class DailyInvoice : IJob
 {
     private readonly GetSqlData sqldata;
     private ReportServiceDeskTop _report;
-    private WhatsappService _service;
+    private WhatsappService _WhatsAppService;
     private EmailService _emailService;
     private readonly ILogger<Worker> _logger;
 
@@ -28,7 +28,7 @@ public class DailyInvoice : IJob
     {
         sqldata = sql;
         _report = report;
-        _service = service;
+        _WhatsAppService = service;
         _emailService = emailService;
         _logger = logger;
     }
@@ -125,11 +125,11 @@ Group by Party_Code, ac.ac_Name, agent.Ac_Name, bb.Book_Code");
                              .ToList();
                 if (UseOfficialWhatsApp)//for official whatsapp send document to multiple mobile numbers
                 {
-                    var fileresponse = await _service.UploadFile(Pdfbyte, FileName, Company.PhoneNoId, Company.WABAToken);
+                    var fileresponse = await _WhatsAppService.UploadFile(Pdfbyte, FileName, Company.PhoneNoId, Company.WABAToken);
 
                     foreach (var mobile in mobileNumbers)//send same file to multiple mobile numbers after this loop id genrate for new document
                     {
-                        await _service.SendDocument(Company.PhoneNoId, Company.WABAToken, mobile, fileresponse.id, FileName, "document", Company.Comp_Name);
+                        await _WhatsAppService.SendDocument(Company.PhoneNoId, Company.WABAToken, mobile, fileresponse.id, FileName, "document", Company.Comp_Name);
                     }
                 }
                 else
@@ -147,13 +147,13 @@ Group by Party_Code, ac.ac_Name, agent.Ac_Name, bb.Book_Code");
 
                     // Save PDF
                     await File.WriteAllBytesAsync(filePath, Pdfbyte);
-
-                    var response = _service.GetDetails();
+                    /*
+                    var response = _WhatsAppService.GetDetails();
                     if (response == true)
                     {
                         foreach (var mobile in mobileNumbers)//send same file to multiple mobile numbers after this loop id genrate for new document
                         {
-                            _service.SendReq(@$"Dear Customer, We Are Sending You Invoice {invoice.Bill_Nos} from *{Company.Comp_Name}*", mobile, filePath);
+                            _WhatsAppService.SendReq(@$"Dear Customer, We Are Sending You Invoice {invoice.Bill_Nos} from *{Company.Comp_Name}*", mobile, filePath);
                         }
 
                         //==========================summary of sent invoice=========================
@@ -161,7 +161,7 @@ Group by Party_Code, ac.ac_Name, agent.Ac_Name, bb.Book_Code");
                     else
                     {
                         Console.WriteLine("Your Port Is Not Open Plese Check And Open Them For Use WhatsappService");
-                    }
+                    }*/
                 }
             }
 
@@ -199,14 +199,16 @@ Group by Party_Code, ac.ac_Name, agent.Ac_Name, bb.Book_Code");
 
                     string summary = sb.ToString();
 
-                    await _service.SendTextWithTemplateMessage(Company.PhoneNoId, Company.WABAToken, AdminMobile, "adminconfirmation", summary);//For Admin Confirmation
+                    await _WhatsAppService.SendTextWithTemplateMessage(Company.PhoneNoId, Company.WABAToken, AdminMobile, "adminconfirmation", summary);//For Admin Confirmation
 
-                    await _service.SendTextWithTemplateMessage(Company.PhoneNoId, Company.WABAToken, "8233029994", "adminconfirmation", summary);//For Company Confirmation
+                    await _WhatsAppService.SendTextWithTemplateMessage(Company.PhoneNoId, Company.WABAToken, "8233029994", "adminconfirmation", summary);//For Company Confirmation
                 }
                 else
                 {
-                    _service.SendReq(Text, AdminMobile, "");//For Admin Confirmation
-                    _service.SendReq(Text, "8233029994", "");//For Company Confirmation
+                    /*
+                    _WhatsAppService.SendReq(Text, AdminMobile, "");//For Admin Confirmation
+                    _WhatsAppService.SendReq(Text, "8233029994", "");//For Company Confirmation
+                    */
                 }
             }
 
